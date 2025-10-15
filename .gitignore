@@ -1,0 +1,4 @@
+.vscode
+/baseenv
+/__pycache__
+/templates
