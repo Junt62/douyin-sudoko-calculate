@@ -253,18 +253,29 @@ class ui:
                     # image = get_window_capture_foreground(target)
 
                     winID = self.window.get_window_id(g.appTitle)
-                    image = self.window.get_window_capture(winID)
+                    image_capture = self.window.get_window_capture(winID)
+                    scale_factor = NSScreen.mainScreen().backingScaleFactor()
 
                     rows = []
                     cols = []
                     for i, row in enumerate(g.chessPosNumTintRowList):
-                        numbers = self.ocr.find_numbers_in_region(image, row)
+                        cropL = g.chessPosNumTintRowList[i]["X"] * scale_factor
+                        cropR = g.chessPosNumTintRowList[i]["W"] * scale_factor
+                        cropT = g.chessPosNumTintRowList[i]["Y"] * scale_factor
+                        cropB = g.chessPosNumTintRowList[i]["H"] * scale_factor
+                        image_croped = image_capture.crop((cropL, cropT, cropR, cropB))
+                        numbers = self.ocr.find_numbers_in_region(image_croped, row)
                         rows.append(numbers)
                     for i, col in enumerate(g.chessPosNumTintColList):
-                        numbers = self.ocr.find_numbers_in_region(image, col)
+                        cropL = g.chessPosNumTintColList[i]["X"] * scale_factor
+                        cropR = g.chessPosNumTintColList[i]["W"] * scale_factor
+                        cropT = g.chessPosNumTintColList[i]["Y"] * scale_factor
+                        cropB = g.chessPosNumTintColList[i]["H"] * scale_factor
+                        image_croped = image_capture.crop((cropL, cropT, cropR, cropB))
+                        numbers = self.ocr.find_numbers_in_region(image_croped, col)
                         cols.append(numbers)
 
-                    nonograms_result = self.solves.solve_nonogram_partial(rows, cols)
+                    nonograms_result = self.solve.solve_nonogram_partial(rows, cols)
 
             if impl:
                 impl.process_inputs()
