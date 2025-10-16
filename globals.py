@@ -5,13 +5,13 @@ appTitle = r"iphone镜像"
 updateFramePerSecend = 0.2
 
 # 每隔多少秒更新一次ocr
-updateOcrPerSecend = 2
+updateOcrPerSecend = 5
 
 # 棋盘坐标
-chessFivePos = {"X1": 75, "Y1": 408, "X2": 436, "Y2": 767}
-chessTenPos = {"X1": 79, "Y1": 412, "X2": 436, "Y2": 767}
-chessTwelvePos = {"X1": 76, "Y1": 414, "X2": 433, "Y2": 769}
-chessFifteenPos = {"X1": 75, "Y1": 409, "X2": 435, "Y2": 767}
+chessFivePos = {"X": 75, "Y": 408, "W": 436, "H": 767}
+chessTenPos = {"X": 79, "Y": 412, "W": 436, "H": 767}
+chessTwelvePos = {"X": 76, "Y": 414, "W": 433, "H": 769}
+chessFifteenPos = {"X": 75, "Y": 409, "W": 435, "H": 767}
 
 # 识别需要使用哪个坐标
 chessPos = chessFifteenPos
@@ -27,38 +27,46 @@ chessSize = POS_TO_SIZE.get(id(chessPos))
 
 # 动态生成棋盘的数字提示坐标
 chessPosNumTintRow = {
-    "X1": chessPos["X1"],
-    "Y1": chessPos["Y1"] - 65,
-    "X2": chessPos["X2"] - 2,
-    "Y2": chessPos["Y1"],
+    "X": chessPos["X"] - 70,
+    "Y": chessPos["Y"],
+    "W": chessPos["X"],
+    "H": chessPos["H"],
 }
 chessPosNumTintCol = {
-    "X1": chessPos["X1"] - 70,
-    "Y1": chessPos["Y1"],
-    "X2": chessPos["X1"],
-    "Y2": chessPos["Y2"],
+    "X": chessPos["X"],
+    "Y": chessPos["Y"] - 65,
+    "W": chessPos["W"] - 2,
+    "H": chessPos["Y"],
 }
 
 # 棋盘数字提示坐标的偏移
-chessPosNumTintRowOffset = (chessPosNumTintRow["X2"] - chessPosNumTintRow["X1"]) / chessSize
-chessPosNumTintColOffset = (chessPosNumTintCol["Y2"] - chessPosNumTintCol["Y1"]) / chessSize
+chessPosNumTintRowOffset = (
+    chessPosNumTintRow["H"] - chessPosNumTintRow["Y"]
+) / chessSize
+chessPosNumTintColOffset = (
+    chessPosNumTintCol["W"] - chessPosNumTintCol["X"]
+) / chessSize
 
 # 棋盘数字提示坐标的每一个格子
 chessPosNumTintRowList = [
     {
-        "X1": chessPosNumTintRow["X1"] + i * chessPosNumTintRowOffset,
-        "Y1": chessPosNumTintRow["Y1"],
-        "X2": chessPosNumTintRow["X1"] + chessPosNumTintRowOffset + i * chessPosNumTintRowOffset,
-        "Y2": chessPosNumTintRow["Y2"],
+        "X": chessPosNumTintRow["X"],
+        "Y": chessPosNumTintRow["Y"] + i * chessPosNumTintRowOffset,
+        "W": chessPosNumTintRow["W"],
+        "H": chessPosNumTintRow["Y"]
+        + chessPosNumTintRowOffset
+        + i * chessPosNumTintRowOffset,
     }
     for i in range(chessSize)
 ]
 chessPosNumTintColList = [
     {
-        "X1": chessPosNumTintCol["X1"],
-        "Y1": chessPosNumTintCol["Y1"] + i * chessPosNumTintColOffset,
-        "X2": chessPosNumTintCol["X2"],
-        "Y2": chessPosNumTintCol["Y1"] + chessPosNumTintColOffset + i * chessPosNumTintColOffset,
+        "X": chessPosNumTintCol["X"] + i * chessPosNumTintColOffset,
+        "Y": chessPosNumTintCol["Y"],
+        "W": chessPosNumTintCol["X"]
+        + chessPosNumTintColOffset
+        + i * chessPosNumTintColOffset,
+        "H": chessPosNumTintCol["H"],
     }
     for i in range(chessSize)
 ]
@@ -67,10 +75,10 @@ chessPosNumTintColList = [
 chessPosEveryBlockGrid = [
     [
         {
-            "X1": chessPosNumTintRow["X1"] + j * chessPosNumTintRowOffset,
-            "Y1": chessPosNumTintCol["Y1"] + i * chessPosNumTintColOffset,
-            "X2": chessPosNumTintRow["X1"] + (j + 1) * chessPosNumTintRowOffset,
-            "Y2": chessPosNumTintCol["Y1"] + (i + 1) * chessPosNumTintColOffset,
+            "X": chessPosNumTintCol["X"] + j * chessPosNumTintColOffset,
+            "Y": chessPosNumTintRow["Y"] + i * chessPosNumTintRowOffset,
+            "W": chessPosNumTintCol["X"] + (j + 1) * chessPosNumTintColOffset,
+            "H": chessPosNumTintRow["Y"] + (i + 1) * chessPosNumTintRowOffset,
         }
         for j in range(chessSize)
     ]
