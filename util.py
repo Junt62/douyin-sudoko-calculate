@@ -1,3 +1,7 @@
+import math
+import imgui
+
+
 def nums_sort(data, direction="x"):
     """
     字典数组排序与合并
@@ -140,3 +144,112 @@ def dict2list(dict_list, key):
         二维整数列表
     """
     return [[int(item[key]) for item in row] for row in dict_list]
+
+
+@staticmethod
+def text_with_outline(
+    text, outline_color=(0, 0, 0, 1), text_color=(1, 1, 1, 1), thickness=1, samples=8
+):
+    """
+    绘制带描边的文字
+    :param text: 文字内容
+    :param outline_color: 描边颜色 (r, g, b, a)
+    :param text_color: 文字颜色 (r, g, b, a)
+    :param thickness: 描边粗细（像素）
+    :param samples: 采样点数量（8或16，越多越平滑但性能越低）
+    """
+    pos = imgui.get_cursor_screen_pos()
+    draw_list = imgui.get_window_draw_list()
+
+    # 在圆周上采样多个点来绘制描边
+    for i in range(samples):
+        angle = (2 * math.pi * i) / samples
+        offset_x = math.cos(angle) * thickness
+        offset_y = math.sin(angle) * thickness
+
+        draw_list.add_text(
+            pos[0] + offset_x,
+            pos[1] + offset_y,
+            imgui.get_color_u32_rgba(*outline_color),
+            text,
+        )
+
+    # 绘制主文字
+    draw_list.add_text(pos[0], pos[1], imgui.get_color_u32_rgba(*text_color), text)
+
+    # 移动光标（为了不影响布局）
+    text_size = imgui.calc_text_size(text)
+    imgui.dummy(text_size[0], text_size[1])
+
+
+@staticmethod
+def text_with_simple_outline(
+    text, outline_color=(0, 0, 0, 1), text_color=(1, 1, 1, 1), thickness=1
+):
+    """
+    绘制带简单描边的文字（8方向，性能更好）
+    :param text: 文字内容
+    :param outline_color: 描边颜色 (r, g, b, a)
+    :param text_color: 文字颜色 (r, g, b, a)
+    :param thickness: 描边粗细（像素）
+    """
+    pos = imgui.get_cursor_screen_pos()
+    draw_list = imgui.get_window_draw_list()
+
+    # 在8个方向绘制描边
+    offsets = [
+        (-thickness, -thickness),
+        (0, -thickness),
+        (thickness, -thickness),
+        (-thickness, 0),
+        (thickness, 0),
+        (-thickness, thickness),
+        (0, thickness),
+        (thickness, thickness),
+    ]
+
+    for offset_x, offset_y in offsets:
+        draw_list.add_text(
+            pos[0] + offset_x,
+            pos[1] + offset_y,
+            imgui.get_color_u32_rgba(*outline_color),
+            text,
+        )
+
+    # 绘制主文字
+    draw_list.add_text(pos[0], pos[1], imgui.get_color_u32_rgba(*text_color), text)
+
+    # 移动光标
+    text_size = imgui.calc_text_size(text)
+    imgui.dummy(text_size[0], text_size[1])
+
+
+@staticmethod
+def text_with_shadow(
+    text, shadow_color=(0, 0, 0, 0.8), text_color=(1, 1, 1, 1), offset_x=1, offset_y=1
+):
+    """
+    绘制带阴影的文字
+    :param text: 文字内容
+    :param shadow_color: 阴影颜色 (r, g, b, a)
+    :param text_color: 文字颜色 (r, g, b, a)
+    :param offset_x: 阴影X偏移
+    :param offset_y: 阴影Y偏移
+    """
+    pos = imgui.get_cursor_screen_pos()
+    draw_list = imgui.get_window_draw_list()
+
+    # 绘制阴影
+    draw_list.add_text(
+        pos[0] + offset_x,
+        pos[1] + offset_y,
+        imgui.get_color_u32_rgba(*shadow_color),
+        text,
+    )
+
+    # 绘制主文字
+    draw_list.add_text(pos[0], pos[1], imgui.get_color_u32_rgba(*text_color), text)
+
+    # 移动光标
+    text_size = imgui.calc_text_size(text)
+    imgui.dummy(text_size[0], text_size[1])

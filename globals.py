@@ -29,7 +29,7 @@ class Globals:
             {"X": 75, "Y": 408, "W": 436, "H": 767}
         )
         self.CHESS_POS_TEN_LOGIC = MappingProxyType(
-            {"X": 79, "Y": 412, "W": 436, "H": 767}
+            {"X": 80, "Y": 416, "W": 434, "H": 767}
         )
         self.CHESS_POS_TWELVE_LOGIC = MappingProxyType(
             {"X": 76, "Y": 412, "W": 435, "H": 769}

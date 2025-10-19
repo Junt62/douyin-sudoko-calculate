@@ -215,7 +215,8 @@ class ui:
         for i, pos in enumerate(self.globals.mark_row_pos_list):
             text = " ".join(str(num) for num in row_nums[i])
             imgui.set_cursor_pos((float(pos["X"]), float(pos["Y"])))
-            imgui.text(text)
+            # imgui.text(text)
+            util.text_with_shadow(text)
 
         # 绘制列数字提示范围格子
         for i, pos in enumerate(self.globals.mark_col_pos_list):
@@ -223,7 +224,8 @@ class ui:
             total_height = len(col_nums[i]) * line_height
             text = "\n".join(str(num) for num in col_nums[i])
             imgui.set_cursor_pos((float(pos["X"]), float(pos["Y"] - total_height)))
-            imgui.text(text)
+            # imgui.text(text)
+            util.text_with_shadow(text)
 
     def init_window(self):
         """初始化窗口并自动检测 Retina 缩放"""
