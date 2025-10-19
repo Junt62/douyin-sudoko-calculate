@@ -1,3 +1,4 @@
+from collections import defaultdict
 import time
 import AppKit
 from Quartz import (
@@ -35,21 +36,24 @@ import pytesseract
 import os
 from typing import Tuple, Dict
 
-import globals as g
+import globals
 import ocr
+import util
 import window
 import solve
 
 
 class ui:
+    globals = None
     window = None
     ocr = None
     solve = None
 
     def __init__(self):
-        self.window = window.window()
-        self.ocr = ocr.ocr()
-        self.solve = solve.solve()
+        self.globals = globals.Globals()
+        self.window = window.Window()
+        self.ocr = ocr.Ocr()
+        self.solve = solve.Solve()
 
     def approx_equal(self, a, b, eps=1) -> int:
         return abs(a - b) <= eps
@@ -75,116 +79,131 @@ class ui:
         # 可选：禁用在 Exposé/Spaces 中作为普通窗口显示
         # ns_window.setCollectionBehavior_(256)  # NSWindowCollectionBehaviorCanJoinAllSpaces
 
-    def element_draw(self, dl, ww, wh, nonograms_result):
-        # 绘制app范围
-        if g.appRangeFillAlpha > 0.0:
-            fill_col = imgui.get_color_u32_rgba(
-                *g.appRangeFillColor, g.appRangeFillAlpha
+    def imdraw_grid(self, ww, wh, dl, nonograms_result):
+        if self.globals.APP_FILL_ALPHA > 0.0:
+            dl.add_rect_filled(
+                0,
+                0,
+                ww,
+                wh,
+                imgui.get_color_u32_rgba(
+                    *self.globals.APP_FILL_COLOR, self.globals.APP_FILL_ALPHA
+                ),
+                0.0,
             )
-            dl.add_rect_filled(0, 0, ww, wh, fill_col, 0.0)
-        border_col = imgui.get_color_u32_rgba(
-            *g.appRangeBorderColor, g.appRangeBorderAlpha
-        )
-        dl.add_rect(
-            0, 0, ww, wh, border_col, 0.0, 0, thickness=g.appRangeBorderThickness
-        )
-
+            dl.add_rect(
+                0,
+                0,
+                ww,
+                wh,
+                imgui.get_color_u32_rgba(
+                    *self.globals.APP_BORDER_COLOR,
+                    self.globals.APP_BORDER_ALPHA,
+                ),
+                0.0,
+                0,
+                thickness=self.globals.APP_BORDER_THICKNESS,
+            )
         # 绘制棋盘范围
-        fill_col = imgui.get_color_u32_rgba(
-            *g.chessRangeFillColor, g.chessRangeFillAlpha
-        )
-        dl.add_rect_filled(
-            g.chessPos["X"], g.chessPos["Y"], g.chessPos["W"], g.chessPos["H"], fill_col
-        )
-        border_col = imgui.get_color_u32_rgba(
-            *g.chessRangeBorderColor, g.chessRangeBorderAlpha
-        )
-        dl.add_rect(
-            g.chessPos["X"],
-            g.chessPos["Y"],
-            g.chessPos["W"],
-            g.chessPos["H"],
-            border_col,
-            thickness=g.chessRangeBorderThickness,
-        )
+        if self.globals.CHESS_FILL_ALPHA > 0:
+            dl.add_rect_filled(
+                self.globals.chess_grid_pos["X"],
+                self.globals.chess_grid_pos["Y"],
+                self.globals.chess_grid_pos["W"],
+                self.globals.chess_grid_pos["H"],
+                imgui.get_color_u32_rgba(
+                    *self.globals.CHESS_FILL_COLOR, self.globals.CHESS_FILL_ALPHA
+                ),
+            )
+        if self.globals.CHESS_BORDER_ALPHA > 0:
+            dl.add_rect(
+                self.globals.chess_grid_pos["X"],
+                self.globals.chess_grid_pos["Y"],
+                self.globals.chess_grid_pos["W"],
+                self.globals.chess_grid_pos["H"],
+                imgui.get_color_u32_rgba(
+                    *self.globals.CHESS_BORDER_COLOR, self.globals.CHESS_BORDER_ALPHA
+                ),
+                thickness=self.globals.CHESS_BORDER_THICKNESS,
+            )
 
         # 绘制行数字提示范围
         dl.add_rect(
-            g.chessPosNumTintRow["X"],
-            g.chessPosNumTintRow["Y"],
-            g.chessPosNumTintRow["W"],
-            g.chessPosNumTintRow["H"],
+            self.globals.mark_row_pos["X"],
+            self.globals.mark_row_pos["Y"],
+            self.globals.mark_row_pos["W"],
+            self.globals.mark_row_pos["H"],
             imgui.get_color_u32_rgba(
-                *g.chessPosNumTintRangeBorderColor, g.chessPosNumTintRangeBorderAlpha
+                *self.globals.MARK_BORDER_COLOR, self.globals.MARK_BORDER_ALPHA
             ),
-            thickness=g.chessPosNumTintRangeBorderThickness,
+            thickness=self.globals.MARK_BORDER_THICKNESS,
         )
 
         # 绘制列数字提示范围
         dl.add_rect(
-            g.chessPosNumTintCol["X"],
-            g.chessPosNumTintCol["Y"],
-            g.chessPosNumTintCol["W"],
-            g.chessPosNumTintCol["H"],
+            self.globals.mark_col_pos["X"],
+            self.globals.mark_col_pos["Y"],
+            self.globals.mark_col_pos["W"],
+            self.globals.mark_col_pos["H"],
             imgui.get_color_u32_rgba(
-                *g.chessPosNumTintRangeBorderColor, g.chessPosNumTintRangeBorderAlpha
+                *self.globals.MARK_BORDER_COLOR, self.globals.MARK_BORDER_ALPHA
             ),
-            thickness=g.chessPosNumTintRangeBorderThickness,
+            thickness=self.globals.MARK_BORDER_THICKNESS,
         )
 
         # 绘制行数字提示范围格子
-        for pos in g.chessPosNumTintRowList:
+        for pos in self.globals.mark_row_pos_list:
             dl.add_rect(
                 float(pos["X"] + 2),
                 float(pos["Y"] + 2),
                 float(pos["W"] - 2),
                 float(pos["H"] - 2),
                 imgui.get_color_u32_rgba(
-                    *g.chessPosNumTintEveryRangeBorderColor,
-                    g.chessPosNumTintEveryRangeBorderAlpha,
+                    *self.globals.MARK_BLOCK_BORDER_COLOR,
+                    self.globals.MARK_BLOCK_BORDER_ALPHA,
                 ),
-                thickness=g.chessPosNumTintEveryRangeBorderThickness,
+                thickness=self.globals.MARK_BLOCK_BORDER_THICKNESS,
             )
 
         # 绘制列数字提示范围格子
-        for pos in g.chessPosNumTintColList:
+        for pos in self.globals.mark_col_pos_list:
             dl.add_rect(
                 float(pos["X"] + 2),
                 float(pos["Y"] + 2),
                 float(pos["W"] - 2),
                 float(pos["H"] - 2),
                 imgui.get_color_u32_rgba(
-                    *g.chessPosNumTintEveryRangeBorderColor,
-                    g.chessPosNumTintEveryRangeBorderAlpha,
+                    *self.globals.MARK_BLOCK_BORDER_COLOR,
+                    self.globals.MARK_BLOCK_BORDER_ALPHA,
                 ),
-                thickness=g.chessPosNumTintEveryRangeBorderThickness,
+                thickness=self.globals.MARK_BLOCK_BORDER_THICKNESS,
             )
 
         # 绘制横盘内的格子
-        for i, row in enumerate(g.chessPosEveryBlockGrid):
+        for i, row in enumerate(self.globals.chess_block_pos):
             for j, pos in enumerate(row):
 
                 color = None
                 if len(nonograms_result) > 1:
                     if nonograms_result[i][j] == 1:
                         color = imgui.get_color_u32_rgba(
-                            *g.chessPosEveryBlockGridRangeBorderColorTrue,
-                            g.chessPosEveryBlockGridRangeBorderAlpha,
+                            *self.globals.CHESS_BLOCK_BORDER_COLOR_TRUE,
+                            self.globals.CHESS_BLOCK_BORDER_ALPHA,
                         )
                     elif nonograms_result[i][j] == 0:
                         color = imgui.get_color_u32_rgba(
-                            *g.chessPosEveryBlockGridRangeBorderColorFalse,
-                            g.chessPosEveryBlockGridRangeBorderAlpha,
+                            *self.globals.CHESS_BLOCK_BORDER_COLOR_FALSE,
+                            self.globals.CHESS_BLOCK_BORDER_ALPHA,
                         )
                     else:
                         color = imgui.get_color_u32_rgba(
-                            *g.chessPosEveryBlockGridRangeBorderColor,
-                            g.chessPosEveryBlockGridRangeBorderAlpha,
+                            *self.globals.CHESS_BLOCK_BORDER_COLOR,
+                            self.globals.CHESS_BLOCK_BORDER_ALPHA,
                         )
                 else:
                     color = imgui.get_color_u32_rgba(
-                        *g.chessPosEveryBlockGridRangeBorderColor,
-                        g.chessPosEveryBlockGridRangeBorderAlpha,
+                        *self.globals.CHESS_BLOCK_BORDER_COLOR,
+                        self.globals.CHESS_BLOCK_BORDER_ALPHA,
                     )
                 dl.add_rect(
                     float(pos["X"] + 1),
@@ -192,10 +211,26 @@ class ui:
                     float(pos["W"] - 1),
                     float(pos["H"] - 1),
                     color,
-                    thickness=g.chessPosEveryBlockGridRangeBorderThickness,
+                    thickness=self.globals.CHESS_BLOCK_BORDER_THICKNESS,
                 )
 
-    def build(self):
+    def imdraw_number(self, row_nums, col_nums):
+        # 绘制行数字提示范围格子
+        for i, pos in enumerate(self.globals.mark_row_pos_list):
+            text = " ".join(str(num) for num in row_nums[i])
+            imgui.set_cursor_pos((float(pos["X"] + 2), float(pos["Y"] + 4)))
+            imgui.text(text)
+
+        # 绘制列数字提示范围格子
+        for i, pos in enumerate(self.globals.mark_col_pos_list):
+            line_height = imgui.get_text_line_height()
+            total_height = len(col_nums[i]) * line_height
+            text = "\n".join(str(num) for num in col_nums[i])
+            imgui.set_cursor_pos((float(pos["X"] + 7), float(pos["Y"] - total_height)))
+            imgui.text(text)
+
+    def init_window(self):
+        """初始化窗口并自动检测 Retina 缩放"""
         if not glfw.init():
             raise RuntimeError("Failed to init GLFW")
 
@@ -211,77 +246,81 @@ class ui:
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, glfw.TRUE)
 
-        im_window = glfw.create_window(1, 1, "Overlay", None, None)
-        if not im_window:
+        # 创建窗口
+        self.im_window = glfw.create_window(1, 1, "Overlay", None, None)
+        if not self.im_window:
             glfw.terminate()
             raise RuntimeError("Failed to create window")
-        glfw.make_context_current(im_window)
+        glfw.make_context_current(self.im_window)
 
+        # 初始化imgui
         imgui.create_context()
-        impl = GlfwRenderer(im_window)
+        self.impl = GlfwRenderer(self.im_window)
 
         # 设置点击穿透（窗口已创建后调用）
-        self.make_window_click_through(im_window)
+        self.make_window_click_through(self.im_window)
+
+    def run(self):
+        self.init_window()
 
         imgui_update = 0
         ocr_update = 0
         nonograms_result: List[List[int]] = [[]]
 
-        while not glfw.window_should_close(im_window):
+        # target = {"X": 100, "Y": -1000, "W": 600, "H": 1000}
+        # glfw.set_window_pos(im_window, target["X"], target["Y"])
+        # glfw.set_window_size(im_window, target["W"], target["H"])
+
+        while not glfw.window_should_close(self.im_window):
             glfw.poll_events()
-            impl.process_inputs()
+            self.impl.process_inputs()
 
             now = time.time()
 
-            if now - imgui_update >= g.updateFramePerSecend:
+            if now - imgui_update >= self.globals.UPDATE_UI_FPS:
                 imgui_update = now
 
-                target = self.window.get_window_size(g.appTitle)
+                target = self.window.get_window_size(self.globals.APP_TITLE)
                 if not target:
                     print("未找到 iphone镜像 窗口，程序已退出...")
                     return
 
-                glfw.set_window_pos(im_window, target["X"], target["Y"])
-                glfw.set_window_size(im_window, target["W"], target["H"])
+                glfw.set_window_pos(self.im_window, target["X"], target["Y"])
+                glfw.set_window_size(self.im_window, target["W"], target["H"])
                 # print(window.get_mouse_pos_in_window(target))
 
-                if now - ocr_update >= g.updateOcrPerSecend:
+                if now - ocr_update >= self.globals.UPDATE_OCR_FPS:
                     ocr_update = now
 
                     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: 更新ocr")
 
-                    # image = get_window_capture_foreground(target)
-
-                    winID = self.window.get_window_id(g.appTitle)
+                    winID = self.window.get_window_id(self.globals.APP_TITLE)
                     image_capture = self.window.get_window_capture(winID)
-                    scale_factor = NSScreen.mainScreen().backingScaleFactor()
 
-                    rows = []
-                    cols = []
-                    for i, row in enumerate(g.chessPosNumTintRowList):
-                        cropL = g.chessPosNumTintRowList[i]["X"] * scale_factor
-                        cropR = g.chessPosNumTintRowList[i]["W"] * scale_factor
-                        cropT = g.chessPosNumTintRowList[i]["Y"] * scale_factor
-                        cropB = g.chessPosNumTintRowList[i]["H"] * scale_factor
-                        image_croped = image_capture.crop((cropL, cropT, cropR, cropB))
-                        numbers = self.ocr.find_numbers_in_region(image_croped, row)
-                        rows.append(numbers)
-                    for i, col in enumerate(g.chessPosNumTintColList):
-                        cropL = g.chessPosNumTintColList[i]["X"] * scale_factor
-                        cropR = g.chessPosNumTintColList[i]["W"] * scale_factor
-                        cropT = g.chessPosNumTintColList[i]["Y"] * scale_factor
-                        cropB = g.chessPosNumTintColList[i]["H"] * scale_factor
-                        image_croped = image_capture.crop((cropL, cropT, cropR, cropB))
-                        numbers = self.ocr.find_numbers_in_region(image_croped, col)
-                        cols.append(numbers)
+                    row_nums = []
+                    col_nums = []
+                    for index, value in enumerate(self.globals.mark_row_pos_list):
+                        numbers = self.ocr.match_numbers(image_capture, value)
+                        num_sort = util.nums_sort(numbers, "x")
+                        row_nums.append(num_sort)
+                    for index, value in enumerate(self.globals.mark_col_pos_list):
+                        numbers = self.ocr.match_numbers(image_capture, value)
+                        num_sort = util.nums_sort(numbers, "y")
+                        col_nums.append(num_sort)
 
-                    nonograms_result = self.solve.solve_nonogram_partial(rows, cols)
+                    grin_num = self.globals.chess_grid_num
+                    if len(row_nums) >= grin_num & len(col_nums) >= grin_num:
+                        rows_list = util.dict2list(row_nums, "name")
+                        cols_list = util.dict2list(col_nums, "name")
+                        nonograms_result = self.solve.solve_nonogram_partial(
+                            rows_list, cols_list
+                        )
 
-            if impl:
-                impl.process_inputs()
+            # if self.impl:
+            #     self.impl.process_inputs()
             imgui.new_frame()
 
-            ww, wh = glfw.get_window_size(im_window)
+            ww, wh = glfw.get_window_size(self.im_window)
             ww = max(1, ww)
             wh = max(1, wh)
 
@@ -302,9 +341,12 @@ class ui:
             imgui.push_style_var(imgui.STYLE_WINDOW_PADDING, (0, 0))
             opened, _ = imgui.begin("FollowWindowOverlay", True, flags)
             if opened:
+                # 绘制app范围
                 dl = imgui.get_window_draw_list()
-
-                self.element_draw(dl, ww, wh, nonograms_result)
+                self.imdraw_grid(ww, wh, dl, nonograms_result)
+                grin_num = self.globals.chess_grid_num
+                if len(row_nums) >= grin_num & len(col_nums) >= grin_num:
+                    self.imdraw_number(rows_list, cols_list)
 
             imgui.end()
             imgui.pop_style_var()
@@ -314,18 +356,17 @@ class ui:
             # 你的 OpenGL 绘制清屏为透明
             import OpenGL.GL as gl
 
-            fbw, fbh = glfw.get_framebuffer_size(im_window)
+            fbw, fbh = glfw.get_framebuffer_size(self.im_window)
             gl.glViewport(0, 0, fbw, fbh)
             gl.glClearColor(0.0, 0.0, 0.0, 0.0)  # 透明
             gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
-            if impl:
-                impl.render(imgui.get_draw_data())
+            if self.impl:
+                self.impl.render(imgui.get_draw_data())
 
-            glfw.swap_buffers(im_window)
+            glfw.swap_buffers(self.im_window)
 
         # 清理
-        if impl:
-            impl.shutdown()
-            imgui.destroy_context()
+        if self.impl:
+            self.impl.shutdown()
             glfw.terminate()

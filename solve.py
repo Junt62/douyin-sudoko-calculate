@@ -1,9 +1,10 @@
 from typing import List, Tuple, Optional
 
+
 UNKN, EMPTY, FILL = -1, 0, 1  # -/0/1
 
 
-class solve:
+class Solve:
 
     def gen_patterns(self, length: int, clues: List[int]) -> List[List[int]]:
         if not clues:

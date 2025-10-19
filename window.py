@@ -24,7 +24,7 @@ import time
 import mss
 
 
-class window:
+class Window:
 
     def get_main_screen_height(self):
         # NSScreen 使用左下为原点，但我们只需要总高度来翻转 y
