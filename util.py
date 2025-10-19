@@ -50,7 +50,7 @@ def nums_sort(data, direction="x"):
             previous = result[-1]
 
             # 判断是否重叠
-            if current["X"] < previous["X"] + previous["W"]:
+            if current["X"] - 5 < previous["X"] + previous["W"]:
                 result[-1] = {
                     "name": previous["name"] + str(current["name"]),  # 拼接 name
                     "X": previous["X"],
