@@ -64,40 +64,65 @@ def nums_sort(data, direction="x"):
         return result
 
     else:  # direction == 'y'
-        # Y方向：先按Y排序，判断Y差距±15且X+W重叠才合并，合并后再按Y排序
+        # 步骤1：先按Y排序，将Y值接近的分组
+        sorted_by_y = sorted(data, key=lambda d: d["Y"])
 
-        # 步骤1：按Y排序
-        sorted_data = sorted(data, key=lambda d: d["X"])
-        # 步骤2：合并（Y差距±15以内 且 X+W重叠）
-        result = [sorted_data[0].copy()]
-        # 确保 name 是字符串
-        result[0]["name"] = str(result[0]["name"])
+        # 步骤2：按Y值分组（Y差距超过阈值就新建一组）
+        y_threshold = 15  # Y值差距阈值
+        groups = []
+        current_group = [sorted_by_y[0]]
 
-        for i in range(1, len(sorted_data)):
-            current = sorted_data[i]
-            previous = result[-1]
+        for i in range(1, len(sorted_by_y)):
+            current = sorted_by_y[i]
+            previous = sorted_by_y[i - 1]
 
-            # 计算Y值差距
-            y_diff = abs(current["Y"] - previous["Y"])
-
-            # 判断X+W是否重叠
-            x_overlap = current["X"] < previous["X"] + previous["W"]
-
-            # Y差距在15以内 且 X重叠，才合并
-            if y_diff <= 15 and x_overlap:
-                result[-1] = {
-                    "name": previous["name"] + str(current["name"]),
-                    "X": previous["X"],
-                    "Y": previous["Y"],
-                    "W": current["X"] + current["W"] - previous["X"],
-                    "H": current["Y"] + current["H"] - previous["Y"],
-                }
+            # 如果Y值差距过大，创建新组
+            if abs(current["Y"] - previous["Y"]) > y_threshold:
+                groups.append(current_group)
+                current_group = [current]
             else:
-                new_item = current.copy()
-                new_item["name"] = str(new_item["name"])
-                result.append(new_item)
+                current_group.append(current)
 
-        # 步骤3：合并后再按Y排序
+        # 添加最后一组
+        groups.append(current_group)
+
+        # 步骤3：在每组内按X排序并合并
+        result = []
+        for group in groups:
+            # 组内按X排序
+            sorted_group = sorted(group, key=lambda d: d["X"])
+
+            # 组内合并（X+W重叠的合并）
+            group_result = [sorted_group[0].copy()]
+            group_result[0]["name"] = str(group_result[0]["name"])
+
+            for i in range(1, len(sorted_group)):
+                current = sorted_group[i]
+                previous = group_result[-1]
+
+                # 判断X+W是否重叠
+                x_overlap = current["X"] - 8 < previous["X"] + previous["W"]
+
+                # 同组内且X重叠，才合并
+                if x_overlap:
+                    group_result[-1] = {
+                        "name": previous["name"] + str(current["name"]),
+                        "X": previous["X"],
+                        "Y": previous["Y"],
+                        "W": current["X"] + current["W"] - previous["X"],
+                        "H": max(
+                            previous["Y"] + previous["H"], current["Y"] + current["H"]
+                        )
+                        - previous["Y"],
+                    }
+                else:
+                    new_item = current.copy()
+                    new_item["name"] = str(new_item["name"])
+                    group_result.append(new_item)
+
+            result.extend(group_result)
+
+        # 步骤4：最终按Y排序（保持组的顺序）
         result = sorted(result, key=lambda d: d["Y"])
 
         return result

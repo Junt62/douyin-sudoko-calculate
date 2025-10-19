@@ -44,10 +44,6 @@ import solve
 
 
 class ui:
-    globals = None
-    window = None
-    ocr = None
-    solve = None
 
     def __init__(self):
         self.globals = globals.Globals()
@@ -198,12 +194,12 @@ class ui:
                     else:
                         color = imgui.get_color_u32_rgba(
                             *self.globals.CHESS_BLOCK_BORDER_COLOR,
-                            self.globals.CHESS_BLOCK_BORDER_ALPHA,
+                            0,
                         )
                 else:
                     color = imgui.get_color_u32_rgba(
                         *self.globals.CHESS_BLOCK_BORDER_COLOR,
-                        self.globals.CHESS_BLOCK_BORDER_ALPHA,
+                        0,
                     )
                 dl.add_rect(
                     float(pos["X"] + 1),
@@ -218,7 +214,7 @@ class ui:
         # 绘制行数字提示范围格子
         for i, pos in enumerate(self.globals.mark_row_pos_list):
             text = " ".join(str(num) for num in row_nums[i])
-            imgui.set_cursor_pos((float(pos["X"] + 2), float(pos["Y"] + 4)))
+            imgui.set_cursor_pos((float(pos["X"]), float(pos["Y"])))
             imgui.text(text)
 
         # 绘制列数字提示范围格子
@@ -226,7 +222,7 @@ class ui:
             line_height = imgui.get_text_line_height()
             total_height = len(col_nums[i]) * line_height
             text = "\n".join(str(num) for num in col_nums[i])
-            imgui.set_cursor_pos((float(pos["X"] + 7), float(pos["Y"] - total_height)))
+            imgui.set_cursor_pos((float(pos["X"]), float(pos["Y"] - total_height)))
             imgui.text(text)
 
     def init_window(self):
@@ -267,9 +263,22 @@ class ui:
         ocr_update = 0
         nonograms_result: List[List[int]] = [[]]
 
-        # target = {"X": 100, "Y": -1000, "W": 600, "H": 1000}
-        # glfw.set_window_pos(im_window, target["X"], target["Y"])
-        # glfw.set_window_size(im_window, target["W"], target["H"])
+        winID = self.window.get_window_id(self.globals.APP_TITLE)
+        image_capture = self.window.get_window_capture(winID)
+
+        grid_size = self.ocr.match_grid(image_capture)
+        if grid_size == "0":
+            self.globals.chess_size = self.globals.CHESS_POS_TEN_REALITY
+            self.globals.chess_address = "ten"
+        elif grid_size == "1":
+            self.globals.chess_size = self.globals.CHESS_POS_TWELVE_REALITY
+            self.globals.chess_address = "twelve"
+        elif grid_size == "2":
+            self.globals.chess_size = self.globals.CHESS_POS_FIFTEEN_REALITY
+            self.globals.chess_address = "fifteen"
+        else:
+            print("无法读取棋盘大小，程序已退出...")
+            return
 
         while not glfw.window_should_close(self.im_window):
             glfw.poll_events()
@@ -291,11 +300,6 @@ class ui:
 
                 if now - ocr_update >= self.globals.UPDATE_OCR_FPS:
                     ocr_update = now
-
-                    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: 更新ocr")
-
-                    winID = self.window.get_window_id(self.globals.APP_TITLE)
-                    image_capture = self.window.get_window_capture(winID)
 
                     row_nums = []
                     col_nums = []

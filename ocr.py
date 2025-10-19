@@ -3,25 +3,43 @@ import os
 import cv2
 import pytesseract
 import numpy as np
+import globals
 
 
 class Ocr:
-    templates = {}
+    number_templates = {}
+    grid_templates = {}
 
     def __init__(self):
-        self.templates = self.load_digit_templates()
+        self.globals = globals.Globals()
+        self.number_templates = self.load_digit_templates()
+        self.grid_templates = self.load_grid_templates()
 
     def load_digit_templates(self):
         templates = {}
         for d in range(10):
-            p = os.path.join("templates", f"num{d}.png")
-            image = cv2.imread(p, cv2.IMREAD_UNCHANGED)
-            if image.shape[2] == 4:
-                image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
-
+            p = os.path.join("templates", self.globals.chess_address, f"num{d}.png")
+            image = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+            # if image.shape[2] == 4:
+            #     image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
             if image is None:
                 raise FileNotFoundError(f"模板不存在: {p}")
-            templates[str(d)] = image  # 不缩放
+            templates[str(d)] = image
+        return templates
+
+    def load_grid_templates(self):
+        templates = {}
+        p = []
+        p.append(os.path.join("templates", "grid10.png"))
+        p.append(os.path.join("templates", "grid12.png"))
+        p.append(os.path.join("templates", "grid15.png"))
+        for i in range(3):
+            image = cv2.imread(p[i], cv2.IMREAD_UNCHANGED)
+            if image.shape[2] == 4:
+                image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+            if image is None:
+                raise FileNotFoundError(f"模板不存在: {p}")
+            templates[str(i)] = image
         return templates
 
     def image_crop(self, image, search_range):
@@ -88,12 +106,14 @@ class Ocr:
         else:
             image_np_cvt = image_np
 
+        image_np_cvt = cv2.cvtColor(image_np_cvt, cv2.COLOR_BGR2GRAY)
+
         # 裁切原图到需要搜索的范围
         search_area_scaled = {key: value * 2 for key, value in search_area.items()}
         image_np_crop = self.image_crop(image_np_cvt, search_area_scaled)
 
         result_nums = []
-        for tmp_name, tmp_image in self.templates.items():
+        for tmp_name, tmp_image in self.number_templates.items():
             # 制作原图的副本
             overlay = image_np_cvt.copy()
 
@@ -168,3 +188,31 @@ class Ocr:
             cv2.waitKey()
 
         return result_nums
+
+    def match_grid(self, image_pillow, threshold=0.8):
+        image_np = np.array(image_pillow)
+        if image_np.shape[2] == 4:
+            image_np_cvt = cv2.cvtColor(image_np, cv2.COLOR_RGBA2BGR)
+        else:
+            image_np_cvt = image_np
+
+        for tmp_name, tmp_image in self.grid_templates.items():
+            method = cv2.TM_CCOEFF_NORMED
+            result = cv2.matchTemplate(image_np_cvt, tmp_image, method)
+
+            tmp_match_w = tmp_image.shape[1]
+            tmp_match_h = tmp_image.shape[0]
+
+            ys, xs = np.where(result >= threshold)
+            locations = list(zip(xs, ys))
+
+            rectangles = []
+            for loc in locations:
+                rect = [int(loc[0]), int(loc[1]), tmp_match_w, tmp_match_h]
+                rectangles.append(rect)
+                rectangles.append(rect)
+
+            rectangles, weights = cv2.groupRectangles(rectangles, 1, 0.1)
+
+            if len(rectangles):
+                return tmp_name

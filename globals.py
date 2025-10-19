@@ -7,11 +7,10 @@ class Globals:
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(Globals, cls).__new__(cls)
-            cls._instance._initialize_constants()
-            return cls._instance
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
-    def _initialize_constants(self):
+    def __init__(self):
         # 应用标题
         self.APP_TITLE = r"iphone镜像"
 
@@ -19,7 +18,7 @@ class Globals:
         self.UPDATE_UI_FPS = 0.2
 
         # 每隔多少秒更新一次ocr
-        self.UPDATE_OCR_FPS = 5
+        self.UPDATE_OCR_FPS = 999
 
         # 显示器缩放比例
         self.scale_factor = NSScreen.mainScreen().backingScaleFactor()
@@ -33,7 +32,7 @@ class Globals:
             {"X": 79, "Y": 412, "W": 436, "H": 767}
         )
         self.CHESS_POS_TWELVE_LOGIC = MappingProxyType(
-            {"X": 76, "Y": 414, "W": 433, "H": 769}
+            {"X": 76, "Y": 412, "W": 435, "H": 769}
         )
         self.CHESS_POS_FIFTEEN_LOGIC = MappingProxyType(
             {"X": 75, "Y": 409, "W": 435, "H": 767}
@@ -79,40 +78,54 @@ class Globals:
             }
         )
 
+        # 设置棋盘路径
+        self.chess_address = "fifteen"
+
         # 识别棋盘尺寸
         self.chess_size = self.CHESS_POS_FIFTEEN_REALITY
 
-        # 从棋盘尺寸获棋盘位置
-        self.chess_grid_pos = self.chess_size
+    # 从棋盘尺寸获棋盘位置
+    @property
+    def chess_grid_pos(self):
+        return self.chess_size
 
-        # 棋盘尺寸获棋盘行数与列数
-        self.chess_grid_num = self.CHESS_GRID_NUM_GROUP.get(id(self.chess_size))
+    # 棋盘尺寸获棋盘行数与列数
+    @property
+    def chess_grid_num(self):
+        return self.CHESS_GRID_NUM_GROUP.get(id(self.chess_size))
 
-        # 棋盘提示数字的坐标
-        self.mark_row_pos = {
+    # 棋盘提示数字的坐标
+    @property
+    def mark_row_pos(self):
+        return {
             "X": self.chess_grid_pos["X"] - 70,
             "Y": self.chess_grid_pos["Y"],
             "W": self.chess_grid_pos["X"],
             "H": self.chess_grid_pos["H"],
         }
 
-        self.mark_col_pos = {
+    @property
+    def mark_col_pos(self):
+        return {
             "X": self.chess_grid_pos["X"],
-            "Y": self.chess_grid_pos["Y"] - 52,
+            "Y": self.chess_grid_pos["Y"] - 70,
             "W": self.chess_grid_pos["W"] - 2,
             "H": self.chess_grid_pos["Y"],
         }
 
-        # 棋盘提示数字的坐标的列表的偏移
-        self.mark_row_pos_list_offset = (
-            self.mark_row_pos["H"] - self.mark_row_pos["Y"]
-        ) / self.chess_grid_num
-        self.mark_col_pos_list_offset = (
-            self.mark_col_pos["W"] - self.mark_col_pos["X"]
-        ) / self.chess_grid_num
+    # 棋盘提示数字的坐标的列表的偏移
+    @property
+    def mark_row_pos_list_offset(self):
+        return (self.mark_row_pos["H"] - self.mark_row_pos["Y"]) / self.chess_grid_num
 
-        # 棋盘提示数字的坐标的列表
-        self.mark_row_pos_list = [
+    @property
+    def mark_col_pos_list_offset(self):
+        return (self.mark_col_pos["W"] - self.mark_col_pos["X"]) / self.chess_grid_num
+
+    # 棋盘提示数字的坐标的列表
+    @property
+    def mark_row_pos_list(self):
+        return [
             {
                 "X": int(self.mark_row_pos["X"]) * self.scale_factor,
                 "Y": int(self.mark_row_pos["Y"] + i * self.mark_row_pos_list_offset)
@@ -128,7 +141,9 @@ class Globals:
             for i in range(self.chess_grid_num)
         ]
 
-        self.mark_col_pos_list = [
+    @property
+    def mark_col_pos_list(self):
+        return [
             {
                 "X": int(self.mark_col_pos["X"] + i * self.mark_col_pos_list_offset)
                 * self.scale_factor,
@@ -144,8 +159,10 @@ class Globals:
             for i in range(self.chess_grid_num)
         ]
 
-        # 棋盘内的每一个格子的位置
-        self.chess_block_pos = [
+    # 棋盘内的每一个格子的位置
+    @property
+    def chess_block_pos(self):
+        return [
             [
                 {
                     "X": self.mark_col_pos["X"] + j * self.mark_col_pos_list_offset,
