@@ -306,11 +306,33 @@ class ui:
                     row_nums = []
                     col_nums = []
                     for index, value in enumerate(self.globals.mark_row_pos_list):
-                        numbers = self.ocr.match_numbers(image_capture, value)
+                        if self.globals.chess_grid_num == 12:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.7
+                            )
+                        elif self.globals.chess_grid_num == 15:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.8
+                            )
+                        else:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.5
+                            )
                         num_sort = util.nums_sort(numbers, "x")
                         row_nums.append(num_sort)
                     for index, value in enumerate(self.globals.mark_col_pos_list):
-                        numbers = self.ocr.match_numbers(image_capture, value)
+                        if self.globals.chess_grid_num == 12:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.7
+                            )
+                        elif self.globals.chess_grid_num == 15:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.8
+                            )
+                        else:
+                            numbers = self.ocr.match_numbers(
+                                image_capture, value, threshold=0.5
+                            )
                         num_sort = util.nums_sort(numbers, "y")
                         col_nums.append(num_sort)
 
