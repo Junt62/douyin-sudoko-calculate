@@ -1,5 +1,7 @@
 import math
+import time
 import imgui
+import pyautogui
 
 
 def nums_sort(data, direction="x"):
@@ -253,3 +255,27 @@ def text_with_shadow(
     # 移动光标
     text_size = imgui.calc_text_size(text)
     imgui.dummy(text_size[0], text_size[1])
+
+
+@staticmethod
+def click_correct_block(chess_block_pos, nonograms_result, window_size):
+    # 触发点击
+    print("3秒后开始点击正确的格子")
+    time.sleep(1)
+    print("2秒后开始点击正确的格子")
+    time.sleep(1)
+    print("1秒后开始点击正确的格子")
+    time.sleep(1)
+    if not window_size:
+        print("未找到 iphone镜像 窗口，程序已退出...")
+        return
+    for i, row in enumerate(chess_block_pos):
+        for j, pos in enumerate(row):
+            if len(nonograms_result) > 1:
+                if nonograms_result[i][j] == 1:
+                    time.sleep(0.01)
+                    pyautogui.click(
+                        pos["X"] + window_size["X"] + 12,
+                        pos["Y"] + window_size["Y"] + 12,
+                        1,
+                    )

@@ -52,7 +52,7 @@ class Window:
         local_y = my_tl - wy_tl
         return local_x, local_y
 
-    def get_window_size(self, app_name: str = None) -> Optional[Dict]:
+    def get_window_size(self, app_name: str = "") -> Optional[Dict]:
         windows = CGWindowListCopyWindowInfo(
             kCGWindowListOptionOnScreenOnly, kCGNullWindowID
         )

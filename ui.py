@@ -1,6 +1,14 @@
-from collections import defaultdict
 import time
-import AppKit
+import ctypes
+import pyautogui
+import re
+import glfw
+import OpenGL.GL as gl
+import imgui
+from collections import defaultdict
+from AppKit import NSScreen
+from typing import List, Optional, Dict
+from imgui.integrations.glfw import GlfwRenderer
 from Quartz import (
     CGWindowListCopyWindowInfo,
     kCGWindowListOptionOnScreenOnly,
@@ -11,16 +19,7 @@ from Quartz import (
     CGGetOnlineDisplayList,
     CGDisplayBounds,
 )
-from AppKit import NSScreen
-import ctypes
 
-import re
-from typing import List, Optional, Dict
-import Quartz
-import glfw
-import OpenGL.GL as gl
-import imgui
-from imgui.integrations.glfw import GlfwRenderer
 
 # PyObjC for Cocoa access
 import objc
@@ -50,6 +49,9 @@ class ui:
         self.window = window.Window()
         self.ocr = ocr.Ocr()
         self.solve = solve.Solve()
+        self.clicked_correct_block: bool = False
+        self.refrush_count: int = 0
+        pyautogui.PAUSE = 0
 
     def approx_equal(self, a, b, eps=1) -> int:
         return abs(a - b) <= eps
@@ -265,6 +267,11 @@ class ui:
         ocr_update = 0
         nonograms_result: List[List[int]] = [[]]
 
+        target = self.window.get_window_size(self.globals.APP_TITLE)
+        if not target:
+            print("未找到 iphone镜像 窗口，程序已退出...")
+            return
+
         winID = self.window.get_window_id(self.globals.APP_TITLE)
         image_capture = self.window.get_window_capture(winID)
 
@@ -290,11 +297,6 @@ class ui:
 
             if now - imgui_update >= self.globals.UPDATE_UI_FPS:
                 imgui_update = now
-
-                target = self.window.get_window_size(self.globals.APP_TITLE)
-                if not target:
-                    print("未找到 iphone镜像 窗口，程序已退出...")
-                    return
 
                 glfw.set_window_pos(self.im_window, target["X"], target["Y"])
                 glfw.set_window_size(self.im_window, target["W"], target["H"])
@@ -375,6 +377,18 @@ class ui:
                 grin_num = self.globals.chess_grid_num
                 if len(row_nums) >= grin_num & len(col_nums) >= grin_num:
                     self.imdraw_number(rows_list, cols_list)
+
+            if self.refrush_count < 10:
+                self.refrush_count += 1
+            else:
+                if self.clicked_correct_block == False:
+                    self.clicked_correct_block = True
+                    util.click_correct_block(
+                        self.globals.chess_block_pos, nonograms_result, target
+                    )
+                    time.sleep(1)
+                    print("点击完成，程序已退出...")
+                    quit()
 
             imgui.end()
             imgui.pop_style_var()
