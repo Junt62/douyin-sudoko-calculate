@@ -386,7 +386,6 @@ class ui:
                     util.click_correct_block(
                         self.globals.chess_block_pos, nonograms_result, target
                     )
-                    time.sleep(1)
                     print("点击完成，程序已退出...")
                     quit()
 
